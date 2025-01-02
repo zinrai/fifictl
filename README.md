@@ -4,9 +4,7 @@ A command-line tool for managing Free WiFi connections.
 
 ## Features
 
-- Automatic wireless interface detection
-- Support for multiple wireless interfaces
-- Connect to Free WiFi networks
+- Connect to Free WiFi networks with specified interface
 - Disconnect from current network
 - Check connection status
 
@@ -21,33 +19,45 @@ The following commands are required:
 ## Usage
 
 ```bash
-fifictl.sh <command> [options]
+$ sudo fifictl.sh <command> -i <interface> [-s <ssid>]
 ```
+
+### Commands
+
+- `conn`: Connect to specified WiFi network (requires -s option)
+- `disconn`: Disconnect from current WiFi network
+- `status`: Show current connection status
+
+### Options
+
+- `-i <interface>`: Specify wireless interface (required)
+- `-s <ssid>`: Specify SSID (required for conn command)
 
 ### Examples
 
 Connect to Free WiFi:
 
 ```bash
-$ sudo fifictl.sh conn "Free_WiFi"
+$ sudo fifictl.sh conn -i wlan0 -s "Free_WiFi"
 ```
 
 Disconnect from current network:
 
 ```bash
-$ sudo fifictl.sh disconn
+$ sudo fifictl.sh disconn -i wlan0
 ```
 
 Check connection status:
 
 ```bash
-$ sudo fifictl.sh status
+$ sudo fifictl.sh status -i wlan0
 ```
 
 ### Notes
 
 - The script requires root privileges to run
-- If multiple wireless interfaces are available, you will be prompted to select one
+- Interface must be specified using the -i option
+- SSID must be specified using the -s option when connecting
 
 ## License
 

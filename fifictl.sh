@@ -8,58 +8,22 @@ error_exit() {
 show_usage() {
     echo "fifictl - Free WiFi Control Tool"
     echo ""
-    echo "Usage: fifictl <command> [options]"
+    echo "Usage: fifictl <command> -i <interface> [-s <ssid>]"
     echo ""
     echo "Commands:"
-    echo "  conn <SSID>    Connect to specified WiFi network"
-    echo "  disconn        Disconnect from current WiFi network"
-    echo "  status        Show current connection status"
+    echo "  conn        Connect to specified WiFi network (requires -s option)"
+    echo "  disconn     Disconnect from current WiFi network"
+    echo "  status      Show current connection status"
     echo ""
-    echo "Example:"
-    echo "  fifictl conn \"Free_WiFi\""
-    echo "  fifictl disconn"
-    echo "  fifictl status"
+    echo "Options:"
+    echo "  -i <interface>    Specify wireless interface (required)"
+    echo "  -s <ssid>        Specify SSID (required for conn command)"
+    echo ""
+    echo "Examples:"
+    echo "  fifictl conn -i wlan0 -s \"Free_WiFi\""
+    echo "  fifictl disconn -i wlan0"
+    echo "  fifictl status -i wlan0"
     exit 1
-}
-
-find_wireless_interfaces() {
-    # Try to find wireless interfaces using ip command
-    local interfaces
-    interfaces=$(ip link show | grep -E 'wl[a-z0-9]+' | cut -d: -f2 | tr -d ' ')
-
-    if [ -z "$interfaces" ]; then
-        error_exit "No wireless interface found"
-    fi
-
-    echo "$interfaces"
-}
-
-# let user choose an interface if multiple are found
-select_wireless_interface() {
-    local interfaces="$1"
-    local interface_count
-    interface_count=$(echo "$interfaces" | wc -l)
-
-    if [ "$interface_count" -eq 1 ]; then
-        echo "$interfaces"
-        return
-    fi
-
-    echo "Multiple wireless interfaces found:"
-    local i=1
-    while read -r interface; do
-        echo "$i) $interface"
-        i=$((i+1))
-    done <<< "$interfaces"
-
-    while true; do
-        read -r -p "Select interface number (1-$interface_count): " choice
-        if [[ "$choice" =~ ^[0-9]+$ ]] && [ "$choice" -ge 1 ] && [ "$choice" -le "$interface_count" ]; then
-            echo "$interfaces" | sed -n "${choice}p"
-            return
-        fi
-        echo "Invalid choice. Please try again."
-    done
 }
 
 do_connect() {
@@ -100,29 +64,52 @@ if [ "$(id -u)" != "0" ]; then
    error_exit "This script must be run with root privileges."
 fi
 
+# Check if command is provided
 if [ $# -lt 1 ]; then
     show_usage
 fi
 
+# Get the command
 COMMAND="$1"
 shift
 
-# Find and select wireless interface
-WIRELESS_INTERFACES=$(find_wireless_interfaces)
-INTERFACE=$(select_wireless_interface "$WIRELESS_INTERFACES")
+# Initialize variables
+INTERFACE=""
+SSID=""
 
+# Process options
+while getopts "i:s:" opt; do
+    case $opt in
+        i)
+            INTERFACE="$OPTARG"
+            ;;
+        s)
+            SSID="$OPTARG"
+            ;;
+        *)
+            show_usage
+            ;;
+    esac
+done
+
+# Check if interface is specified
+if [ -z "$INTERFACE" ]; then
+    error_exit "Wireless interface must be specified with -i option"
+fi
+
+# Process commands
 case "${COMMAND}" in
     "conn")
-        if [ $# -lt 1 ]; then
-            error_exit "SSID is required for conn command"
+        if [ -z "$SSID" ]; then
+            error_exit "SSID must be specified with -s option for conn command"
         fi
-        do_connect "$1" "${INTERFACE}"
+        do_connect "$SSID" "$INTERFACE"
         ;;
     "disconn")
-        do_disconnect "${INTERFACE}"
+        do_disconnect "$INTERFACE"
         ;;
     "status")
-        do_status "${INTERFACE}"
+        do_status "$INTERFACE"
         ;;
     *)
         error_exit "Unknown command: ${COMMAND}"
